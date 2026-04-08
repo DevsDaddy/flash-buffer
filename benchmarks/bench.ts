@@ -9,7 +9,7 @@
  */
 /* Import required modules */
 import { Bench } from 'tinybench';
-import { FlashBuffer } from '../src';
+import { FlashBuffer, FlashBufferPool } from '../src';
 
 // Create benchmark
 const bench = new Bench({ time: 1000 });
@@ -31,6 +31,9 @@ for (let i = 0; i < iterations; i++) {
     writeBuf.writeCString(strings[i % strings.length]);
 }
 const readBuf = writeBuf.slice();
+
+/* Buffer sizes */
+const sizes = [16, 32, 64, 128, 256, 512, 1024];
 
 /**
  * Create benchmarks
@@ -100,7 +103,36 @@ bench
         for (let i = 0; i < iterations; i++) {
             readBuf.readCString();
         }
+    })
+    .add('new ArrayBuffer (no pool)', () => {
+        for (let i = 0; i < iterations; i++) {
+            const size = sizes[i % sizes.length];
+            const buf = new ArrayBuffer(size);
+            // имитация использования
+            new Uint8Array(buf)[0] = 1;
+        }
+    })
+    .add('BufferPool (acquire/release)', () => {
+        const pool = new FlashBufferPool(100);
+        for (let i = 0; i < iterations; i++) {
+            const size = sizes[i % sizes.length];
+            const buf = pool.acquire(size);
+            new Uint8Array(buf)[0] = 1;
+            pool.release(buf);
+        }
     });
+
+/* Check Global Pool */
+import { defaultPool } from '../src/';
+defaultPool.clear();
+bench.add('Global defaultPool', () => {
+    for (let i = 0; i < iterations; i++) {
+        const size = sizes[i % sizes.length];
+        const buf = defaultPool.acquire(size);
+        new Uint8Array(buf)[0] = 1;
+        defaultPool.release(buf);
+    }
+});
 
 /**
  * Run Benchmarks
