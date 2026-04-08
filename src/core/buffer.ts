@@ -468,4 +468,63 @@ export class FlashBuffer implements Freezable{
         const slicedBuffer = this._buffer.slice(start, end);
         return new FlashBuffer(slicedBuffer, { endianness: this._endianness });
     }
+
+    // #region VarInt support
+    /**
+     * Read VarUint
+     * @returns {number} VarUint value
+     */
+    public readVarUint(): number {
+        let result = 0;
+        let shift = 0;
+        while (true) {
+            if (this._offset >= this.size) throw new RangeError('Incomplete VarUint');
+            const byte = this._dataView.getUint8(this._offset++);
+            result |= (byte & 0x7f) << shift;
+            if ((byte & 0x80) === 0) break;
+            shift += 7;
+            if (shift >= 35) throw new Error('VarUint too long');
+        }
+        return result >>> 0; // ensure unsigned
+    }
+
+    /**
+     * Read VarInt
+     * @returns {number} VarInt value
+     */
+    public readVarInt(): number {
+        const raw = this.readVarUint();
+        // zigzag decode
+        return (raw >>> 1) ^ -(raw & 1);
+    }
+
+    /**
+     * Write VarUint
+     * @param value {number} VarUint value
+     * @returns {FlashBuffer} Current buffer instance
+     */
+    public writeVarUint(value: number): this {
+        this.ensureWritable();
+        let v = value >>> 0;
+        do {
+            let byte = v & 0x7f;
+            v >>>= 7;
+            if (v !== 0) byte |= 0x80;
+            this.ensureWritableSpace(1);
+            this._dataView.setUint8(this._offset++, byte);
+        } while (v !== 0);
+        return this;
+    }
+
+    /**
+     * Write VarInt
+     * @param value {number} VarInt value
+     * @returns {FlashBuffer} Current buffer instance
+     */
+    public writeVarInt(value: number): this {
+        // zigzag encode
+        const zigzag = (value << 1) ^ (value >> 31);
+        return this.writeVarUint(zigzag);
+    }
+    // #endregion
 }
