@@ -1,0 +1,55 @@
+{
+  "name": "flash-buffer",
+  "version": "1.0.0",
+  "description": "An extremely fast and optimized pure typescript binary buffer for your cross-platform real-time applications. A modern approach to memory optimization and network packages.",
+  "keywords": [
+    "fast",
+    "flash",
+    "optimized",
+    "binary",
+    "buffer",
+    "tool",
+    "util",
+    "typescript"
+  ],
+  "homepage": "https://github.com/DevsDaddy/flash-buffer#readme",
+  "bugs": {
+    "url": "https://github.com/DevsDaddy/flash-buffer/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DevsDaddy/flash-buffer.git"
+  },
+  "license": "MIT",
+  "author": "Elijah Rastorguev",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bench": "tsx --tsconfig tsconfig.json benchmarks/bench.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsup": "^8.0.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.0",
+    "vitest": "^1.2.0",
+    "tinybench": "^2.6.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}
