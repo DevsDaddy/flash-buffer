@@ -457,18 +457,6 @@ export class FlashBuffer implements Freezable{
     }
     // #endregion
 
-    /**
-     * Returns a new BinaryBuffer that shares the same underlying buffer,
-     * but with independent offset (starting at current offset).
-     * @param start {number} start offset
-     * @param end {number} end offset
-     * @returns {FlashBuffer} New flash buffer
-     */
-    public slice(start: number = this._offset, end: number = this.size): FlashBuffer {
-        const slicedBuffer = this._buffer.slice(start, end);
-        return new FlashBuffer(slicedBuffer, { endianness: this._endianness });
-    }
-
     // #region VarInt support
     /**
      * Read VarUint
@@ -525,6 +513,67 @@ export class FlashBuffer implements Freezable{
         // zigzag encode
         const zigzag = (value << 1) ^ (value >> 31);
         return this.writeVarUint(zigzag);
+    }
+    // #endregion
+
+    // #region Utils
+    /**
+     * Returns a new BinaryBuffer that shares the same underlying buffer,
+     * but with independent offset (starting at current offset).
+     * @param start {number} start offset
+     * @param end {number} end offset
+     * @returns {FlashBuffer} Current buffer instance
+     */
+    public slice(start: number = this._offset, end: number = this.size): FlashBuffer {
+        const slicedBuffer = this._buffer.slice(start, end);
+        return new FlashBuffer(slicedBuffer, { endianness: this._endianness });
+    }
+
+    /**
+     * Add alignment
+     * @param multiple {number} Multiple
+     * @param fillByte {number} fill byte
+     * @returns {FlashBuffer} Current buffer instance
+     */
+    public align(multiple: number, fillByte: number = 0): this {
+        const remainder = this._offset % multiple;
+        if (remainder !== 0) {
+            const padding = multiple - remainder;
+            this.ensureWritableSpace(padding);
+            for (let i = 0; i < padding; i++) {
+                this._dataView.setUint8(this._offset++, fillByte);
+            }
+        }
+        return this;
+    }
+    // #endregion
+
+    // #region Typed Arrays
+    /**
+     * Write Typed Array
+     * @param array {Array} Typed array
+     * @returns {FlashBuffer} Current buffer instance
+     */
+    public writeTypedArray<T extends ArrayBufferView>(array: T): this {
+        const byteLength = array.byteLength;
+        this.ensureWritableSpace(byteLength);
+        new Uint8Array(this._buffer as ArrayBuffer, this._offset, byteLength).set(new Uint8Array(array.buffer, array.byteOffset, byteLength));
+        this._offset += byteLength;
+        return this;
+    }
+
+    /**
+     * Read Typed Array
+     * @param ctor
+     * @param length {number} length
+     * @returns {Array} Typed array
+     */
+    public readTypedArray<T extends ArrayBufferView>(ctor: { new(buffer: ArrayBuffer, byteOffset: number, length: number): T }, length: number): T {
+        const byteLength = length * (ctor as any).BYTES_PER_ELEMENT;
+        this.ensureReadable(byteLength);
+        const array = new ctor(this._buffer as ArrayBuffer, this._offset, length);
+        this._offset += byteLength;
+        return array;
     }
     // #endregion
 }
