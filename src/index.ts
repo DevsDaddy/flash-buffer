@@ -12,3 +12,11 @@
 /* Export core classes */
 export * from "./core/types";
 export * from "./core/buffer";
+export * from "./core/bitbuffer";
+
+/* Export Schema Tools */
+export * from "./schema/decorators";
+export * from "./schema/schema";
+
+/* Export Utils */
+export * from "./utils/growthStrategies";
