@@ -11,6 +11,7 @@
 import {TextDecoder, TextEncoder} from 'util';
 import {Endianness, Freezable, GrowthStrategy, ReadonlyFlashBuffer} from './types';
 import {applyGrowthStrategy} from "../utils/growthStrategies";
+import {FlashBitBuffer} from "./bitbuffer";
 
 /* Pre-created text encoder and decoder */
 const textEncoder = new TextEncoder();
@@ -516,6 +517,36 @@ export class FlashBuffer implements Freezable{
     }
     // #endregion
 
+    // #region CString
+    /**
+     * Read CString
+     * @returns {string} CString value
+     */
+    public readCString(): string {
+        const start = this._offset;
+        while (this._offset < this.size && this._dataView.getUint8(this._offset) !== 0) {
+            this._offset++;
+        }
+        if (this._offset >= this.size) throw new Error('Unterminated C string');
+        const length = this._offset - start;
+        const view = new Uint8Array(this._buffer as ArrayBuffer, start, length);
+        this._offset++; // skip null terminator
+        return textDecoder.decode(view);
+    }
+
+    /**
+     * Write CString
+     * @param str {string} Value
+     * @returns {FlashBuffer} Current buffer instance
+     */
+    public writeCString(str: string): this {
+        const encoded = textEncoder.encode(str);
+        this.writeBytes(encoded);
+        this.writeUint8(0);
+        return this;
+    }
+    // #endregion
+
     // #region Utils
     /**
      * Returns a new BinaryBuffer that shares the same underlying buffer,
@@ -545,6 +576,34 @@ export class FlashBuffer implements Freezable{
             }
         }
         return this;
+    }
+
+    /**
+     * Bit Operations with FlashBitBuffer Instance
+     * @returns {FlashBitBuffer} Bit buffer
+     */
+    public bit(): FlashBitBuffer {
+        return new FlashBitBuffer(this);
+    }
+
+    /**
+     * HEX Dump
+     * @param options Options
+     * @returns {string} HEX Dump string
+     */
+    public hexdump(options?: { offset?: number; length?: number; columns?: number }): string {
+        const start = options?.offset ?? 0;
+        const len = Math.min(options?.length ?? this.size - start, this.size - start);
+        const cols = options?.columns ?? 16;
+        const view = new Uint8Array(this._buffer as ArrayBuffer, start, len);
+        let result = '';
+        for (let i = 0; i < len; i += cols) {
+            const chunk = view.slice(i, i + cols);
+            const hex = Array.from(chunk, b => b.toString(16).padStart(2, '0')).join(' ');
+            const ascii = Array.from(chunk, b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : '.').join('');
+            result += `${(start + i).toString(16).padStart(8, '0')}  ${hex.padEnd(cols * 3 - 1)}  |${ascii}|\n`;
+        }
+        return result;
     }
     // #endregion
 
