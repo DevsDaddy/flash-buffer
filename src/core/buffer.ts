@@ -8,7 +8,9 @@
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
  */
 /* Import required modules */
-import {Endianness} from "./types";
+import {TextDecoder, TextEncoder} from 'util';
+import {Endianness, Freezable, GrowthStrategy, ReadonlyFlashBuffer} from './types';
+import {applyGrowthStrategy} from "../utils/growthStrategies";
 
 /* Pre-created text encoder and decoder */
 const textEncoder = new TextEncoder();
@@ -22,8 +24,8 @@ export interface FlashBufferOptions {
     initialSize?: number;
     /** Default endianness for read/write operations (can be overridden per call). */
     endianness?: Endianness;
-    /** Growth factor when buffer needs to expand (e.g., 2.0 for doubling). */
-    growthFactor?: number;
+    /** Growth strategy when buffer needs to expand. */
+    growthStrategy?: GrowthStrategy;
     /** Whether to use SharedArrayBuffer when creating a new buffer. */
     useShared?: boolean;
 }
@@ -31,13 +33,14 @@ export interface FlashBufferOptions {
 /**
  * Flash buffer implementation
  */
-export class FlashBuffer {
+export class FlashBuffer implements Freezable{
     /* Buffer Parameters */
-    private _buffer: ArrayBuffer | SharedArrayBuffer;
-    private _dataView: DataView;
-    private _offset: number = 0;
-    private readonly _endianness: Endianness;
-    private readonly _growthFactor: number;
+    protected _buffer: ArrayBuffer | SharedArrayBuffer;
+    protected _dataView: DataView;
+    protected _offset: number = 0;
+    protected _endianness: Endianness;
+    protected _growthStrategy: Exclude<FlashBufferOptions['growthStrategy'], undefined>;
+    protected _frozen: boolean = false;
 
     /**
      * Create FlashBuffer with Options
@@ -75,10 +78,39 @@ export class FlashBuffer {
         }
 
         this._buffer = buffer;
-        this._dataView = new DataView(buffer as ArrayBuffer); // DataView works with both
+        this._dataView = new DataView(buffer as ArrayBuffer);
         this._endianness = opts.endianness ?? Endianness.Big;
-        this._growthFactor = opts.growthFactor ?? 2.0;
+        this._growthStrategy = opts.growthStrategy ?? 'powerOfTwo';
     }
+
+    // #region Freezable
+    /**
+     * Freeze FlashBuffer
+     * @returns {ReadonlyFlashBuffer} Return as ReadonlyFlashBuffer
+     */
+    public freeze(): ReadonlyFlashBuffer {
+        this._frozen = true;
+        return this as any;
+    }
+
+    /**
+     * Checks if FlashBuffer is frozen
+     * @returns {boolean}
+     */
+    public isFrozen(): boolean {
+        return this._frozen;
+    }
+
+    /**
+     * Ensure writable
+     * @protected
+     */
+    protected ensureWritable(): void {
+        if (this._frozen) {
+            throw new Error('Buffer is frozen and cannot be written to');
+        }
+    }
+    // #endregion
 
     /**
      * Returns the underlying buffer (may be SharedArrayBuffer)
@@ -143,94 +175,131 @@ export class FlashBuffer {
         return this;
     }
 
+    // #region Growth buffer
+    /**
+     * Ensure writable space
+     * @param bytes {number} Bytes to ensure
+     * @protected
+     */
+    public ensureWritableSpace(bytes: number): void {
+        this.ensureWritable();
+        const required = this._offset + bytes;
+        if (required > this.size) {
+            this.grow(required);
+        }
+    }
+
+    /**
+     * Grow buffer
+     * @param minSize {number} Minimal size
+     * @protected
+     */
+    protected grow(minSize: number): void {
+        const newSize = applyGrowthStrategy(this.size, minSize, this._growthStrategy);
+        const newBuffer = this._buffer instanceof SharedArrayBuffer
+            ? new SharedArrayBuffer(newSize)
+            : new ArrayBuffer(newSize);
+
+        new Uint8Array(newBuffer).set(new Uint8Array(this._buffer as ArrayBuffer));
+        this._buffer = newBuffer;
+        this._dataView = new DataView(newBuffer as ArrayBuffer);
+    }
+    // #endregion
+
     // #region Reading
+    /**
+     * Ensure readable
+     * @param bytes {number} Bytes
+     * @protected
+     */
+    public ensureReadable(bytes: number): void {
+        if (this._offset + bytes > this.size) {
+            throw new RangeError(`Not enough data to read ${bytes} bytes at offset ${this._offset}`);
+        }
+    }
+
+    /**
+     * Read primitive value from buffer
+     * @param readFn {Function} Read function
+     * @param byteLength {number} Byte length
+     * @param littleEndian {boolean} is little endian
+     * @returns {any} Primitive value
+     * @protected
+     */
+    protected readPrimitive<T>(readFn: (dv: DataView, offset: number, littleEndian?: boolean) => T, byteLength: number, littleEndian?: boolean): T {
+        this.ensureReadable(byteLength);
+        const value = readFn(this._dataView, this._offset, littleEndian);
+        this._offset += byteLength;
+        return value;
+    }
+
     /**
      * Read Int8
      * @returns {number} Int8 value
      */
-    public readInt8(): number {
-        return this._read((dv, off) => dv.getInt8(off), 1);
-    }
+    public readInt8(): number { return this.readPrimitive((dv, off) => dv.getInt8(off), 1); }
 
     /**
      * Read Uint8 value
      * @returns {number} Uint8 value
      */
-    public readUint8(): number {
-        return this._read((dv, off) => dv.getUint8(off), 1);
-    }
+    public readUint8(): number { return this.readPrimitive((dv, off) => dv.getUint8(off), 1); }
 
     /**
      * Read Int16 value
-     * @param littleEndian {boolean} is little endian
+     * @param le {boolean} is little endian
      * @returns {number} Int16 value
      */
-    public readInt16(littleEndian?: boolean): number {
-        return this._read((dv, off, le) => dv.getInt16(off, le), 2, littleEndian ?? this._endianness === Endianness.Little);
-    }
+    public readInt16(le?: boolean): number { return this.readPrimitive((dv, off, le) => dv.getInt16(off, le), 2, le ?? this._endianness === Endianness.Little); }
 
     /**
      * Read Uint16 value
-     * @param littleEndian {boolean} is little endian
+     * @param le {boolean} is little endian
      * @returns {number} Uint16 value
      */
-    public readUint16(littleEndian?: boolean): number {
-        return this._read((dv, off, le) => dv.getUint16(off, le), 2, littleEndian ?? this._endianness === Endianness.Little);
-    }
+    public readUint16(le?: boolean): number { return this.readPrimitive((dv, off, le) => dv.getUint16(off, le), 2, le ?? this._endianness === Endianness.Little); }
 
     /**
      * Read Int32 value
-     * @param littleEndian {boolean} is little endian
+     * @param le {boolean} is little endian
      * @returns {number} Int32 value
      */
-    public readInt32(littleEndian?: boolean): number {
-        return this._read((dv, off, le) => dv.getInt32(off, le), 4, littleEndian ?? this._endianness === Endianness.Little);
-    }
+    public readInt32(le?: boolean): number { return this.readPrimitive((dv, off, le) => dv.getInt32(off, le), 4, le ?? this._endianness === Endianness.Little); }
 
     /**
      * Read Uint32 value
-     * @param littleEndian {boolean} is little endian
+     * @param le {boolean} is little endian
      * @returns {number} Uint32 value
      */
-    public readUint32(littleEndian?: boolean): number {
-        return this._read((dv, off, le) => dv.getUint32(off, le), 4, littleEndian ?? this._endianness === Endianness.Little);
-    }
+    public readUint32(le?: boolean): number { return this.readPrimitive((dv, off, le) => dv.getUint32(off, le), 4, le ?? this._endianness === Endianness.Little); }
 
     /**
      * Read Int64 value
-     * @param littleEndian {boolean} is little endian
+     * @param le {boolean} is little endian
      * @returns {bigint} Int64 value
      */
-    public readBigInt64(littleEndian?: boolean): bigint {
-        return this._read((dv, off, le) => dv.getBigInt64(off, le), 8, littleEndian ?? this._endianness === Endianness.Little);
-    }
+    public readBigInt64(le?: boolean): bigint { return this.readPrimitive((dv, off, le) => dv.getBigInt64(off, le), 8, le ?? this._endianness === Endianness.Little); }
 
     /**
      * Read Uint64 value
-     * @param littleEndian {boolean} is little endian
+     * @param le {boolean} is little endian
      * @returns {bigint} Uint64 value
      */
-    public readBigUint64(littleEndian?: boolean): bigint {
-        return this._read((dv, off, le) => dv.getBigUint64(off, le), 8, littleEndian ?? this._endianness === Endianness.Little);
-    }
+    public readBigUint64(le?: boolean): bigint { return this.readPrimitive((dv, off, le) => dv.getBigUint64(off, le), 8, le ?? this._endianness === Endianness.Little); }
 
     /**
      * Read Float32 value
-     * @param littleEndian {boolean} is little endian
+     * @param le {boolean} is little endian
      * @returns {number} Float32 value
      */
-    public readFloat32(littleEndian?: boolean): number {
-        return this._read((dv, off, le) => dv.getFloat32(off, le), 4, littleEndian ?? this._endianness === Endianness.Little);
-    }
+    public readFloat32(le?: boolean): number { return this.readPrimitive((dv, off, le) => dv.getFloat32(off, le), 4, le ?? this._endianness === Endianness.Little); }
 
     /**
      * Read Float64 value
-     * @param littleEndian {boolean} is little endian
+     * @param le {boolean} is little endian
      * @returns {number} Float64 value
      */
-    public readFloat64(littleEndian?: boolean): number {
-        return this._read((dv, off, le) => dv.getFloat64(off, le), 8, littleEndian ?? this._endianness === Endianness.Little);
-    }
+    public readFloat64(le?: boolean): number { return this.readPrimitive((dv, off, le) => dv.getFloat64(off, le), 8, le ?? this._endianness === Endianness.Little); }
 
     /**
      * Reads a string of given byte length.
@@ -240,9 +309,9 @@ export class FlashBuffer {
      * @returns {string} Raw string
      */
     public readString(byteLength: number, encoding: string = 'utf-8'): string {
-        this._ensureReadable(byteLength);
+        this.ensureReadable(byteLength);
         const view = new Uint8Array(this._buffer as ArrayBuffer, this._offset, byteLength);
-        const str = new TextDecoder(encoding).decode(view);
+        const str = textDecoder.decode(view);
         this._offset += byteLength;
         return str;
     }
@@ -254,124 +323,107 @@ export class FlashBuffer {
      * @returns {Uint8Array} Raw buffer
      */
     public readBytes(length: number): Uint8Array {
-        this._ensureReadable(length);
+        this.ensureReadable(length);
         const view = new Uint8Array(this._buffer as ArrayBuffer, this._offset, length);
         this._offset += length;
         return view;
-    }
-
-    private _read<T>(readFn: (dv: DataView, offset: number, littleEndian?: boolean) => T, byteLength: number, littleEndian?: boolean): T {
-        this._ensureReadable(byteLength);
-        const value = readFn(this._dataView, this._offset, littleEndian);
-        this._offset += byteLength;
-        return value;
-    }
-
-    private _ensureReadable(bytes: number): void {
-        if (this._offset + bytes > this.size) {
-            throw new RangeError(`Not enough data to read ${bytes} bytes at offset ${this._offset}`);
-        }
     }
     // #endregion
 
     // #region Writing
     /**
+     * Write primitive value to buffer
+     * @param writeFn {Function} Write function
+     * @param value {any} Primitive value
+     * @param byteLength {number} byte length
+     * @param littleEndian {boolean} is little endian
+     * @returns {FlashBuffer} Returns buffer
+     * @protected
+     */
+    protected writePrimitive<T>(writeFn: (dv: DataView, offset: number, value: T, littleEndian?: boolean) => void, value: T, byteLength: number, littleEndian?: boolean): this {
+        this.ensureWritableSpace(byteLength);
+        writeFn(this._dataView, this._offset, value, littleEndian);
+        this._offset += byteLength;
+        return this;
+    }
+
+    /**
      * Write Int8 value
      * @param value {number} Int8 value
      * @returns {FlashBuffer} current buffer instance
      */
-    public writeInt8(value: number): this {
-        return this._write((dv, off, v) => dv.setInt8(off, v), value, 1);
-    }
+    public writeInt8(value: number): this { return this.writePrimitive((dv, off, v) => dv.setInt8(off, v), value, 1); }
 
     /**
      * Write Uint8 value
      * @param value {number} Uint8 value
      * @returns {FlashBuffer} current buffer instance
      */
-    public writeUint8(value: number): this {
-        return this._write((dv, off, v) => dv.setUint8(off, v), value, 1);
-    }
+    public writeUint8(value: number): this { return this.writePrimitive((dv, off, v) => dv.setUint8(off, v), value, 1); }
 
     /**
      * Write Int16 value
      * @param value {number} Int16 value
-     * @param littleEndian {boolean} is littleEndian
+     * @param le {boolean} is littleEndian
      * @returns {FlashBuffer} current buffer instance
      */
-    public writeInt16(value: number, littleEndian?: boolean): this {
-        return this._write((dv, off, v, le) => dv.setInt16(off, v, le), value, 2, littleEndian ?? this._endianness === Endianness.Little);
-    }
+    public writeInt16(value: number, le?: boolean): this { return this.writePrimitive((dv, off, v, le) => dv.setInt16(off, v, le), value, 2, le ?? this._endianness === Endianness.Little); }
 
     /**
      * Write Uint16 value
      * @param value {number} Uint16 value
-     * @param littleEndian {boolean} is littleEndian
+     * @param le {boolean} is littleEndian
      * @returns {FlashBuffer} current buffer instance
      */
-    public writeUint16(value: number, littleEndian?: boolean): this {
-        return this._write((dv, off, v, le) => dv.setUint16(off, v, le), value, 2, littleEndian ?? this._endianness === Endianness.Little);
-    }
+    public writeUint16(value: number, le?: boolean): this { return this.writePrimitive((dv, off, v, le) => dv.setUint16(off, v, le), value, 2, le ?? this._endianness === Endianness.Little); }
 
     /**
      * Write Int32 value
      * @param value {number} Int32 value
-     * @param littleEndian {boolean} is littleEndian
+     * @param le {boolean} is littleEndian
      * @returns {FlashBuffer} current buffer instance
      */
-    public writeInt32(value: number, littleEndian?: boolean): this {
-        return this._write((dv, off, v, le) => dv.setInt32(off, v, le), value, 4, littleEndian ?? this._endianness === Endianness.Little);
-    }
+    public writeInt32(value: number, le?: boolean): this { return this.writePrimitive((dv, off, v, le) => dv.setInt32(off, v, le), value, 4, le ?? this._endianness === Endianness.Little); }
 
     /**
      * Write Uint32 value
      * @param value {number} Uint32 value
-     * @param littleEndian {boolean} is littleEndian
+     * @param le {boolean} is littleEndian
      * @returns {FlashBuffer} current buffer instance
      */
-    public writeUint32(value: number, littleEndian?: boolean): this {
-        return this._write((dv, off, v, le) => dv.setUint32(off, v, le), value, 4, littleEndian ?? this._endianness === Endianness.Little);
-    }
+    public writeUint32(value: number, le?: boolean): this { return this.writePrimitive((dv, off, v, le) => dv.setUint32(off, v, le), value, 4, le ?? this._endianness === Endianness.Little); }
 
     /**
      * Write BigInt64 value
      * @param value {bigint} BigInt64 value
-     * @param littleEndian {boolean} is littleEndian
+     * @param le {boolean} is littleEndian
      * @returns {FlashBuffer} current buffer instance
      */
-    public writeBigInt64(value: bigint, littleEndian?: boolean): this {
-        return this._write((dv, off, v, le) => dv.setBigInt64(off, v, le), value, 8, littleEndian ?? this._endianness === Endianness.Little);
-    }
+    public writeBigInt64(value: bigint, le?: boolean): this { return this.writePrimitive((dv, off, v, le) => dv.setBigInt64(off, v, le), value, 8, le ?? this._endianness === Endianness.Little); }
 
     /**
      * Write BigUInt64 value
      * @param value {bigint} BigUInt64 value
-     * @param littleEndian {boolean} is littleEndian
+     * @param le {boolean} is littleEndian
      * @returns {FlashBuffer} current buffer instance
      */
-    public writeBigUint64(value: bigint, littleEndian?: boolean): this {
-        return this._write((dv, off, v, le) => dv.setBigUint64(off, v, le), value, 8, littleEndian ?? this._endianness === Endianness.Little);
-    }
+    public writeBigUint64(value: bigint, le?: boolean): this { return this.writePrimitive((dv, off, v, le) => dv.setBigUint64(off, v, le), value, 8, le ?? this._endianness === Endianness.Little); }
 
     /**
      * Write Float32 value
      * @param value {number} Float32 value
-     * @param littleEndian {boolean} is littleEndian
+     * @param le {boolean} is littleEndian
      * @returns {FlashBuffer} current buffer instance
      */
-    public writeFloat32(value: number, littleEndian?: boolean): this {
-        return this._write((dv, off, v, le) => dv.setFloat32(off, v, le), value, 4, littleEndian ?? this._endianness === Endianness.Little);
-    }
+    public writeFloat32(value: number, le?: boolean): this { return this.writePrimitive((dv, off, v, le) => dv.setFloat32(off, v, le), value, 4, le ?? this._endianness === Endianness.Little); }
 
     /**
      * Write Float64 value
      * @param value {number} Float64 Value
-     * @param littleEndian {boolean} is littleEndian
+     * @param le {boolean} is littleEndian
      * @returns {FlashBuffer} current buffer instance
      */
-    public writeFloat64(value: number, littleEndian?: boolean): this {
-        return this._write((dv, off, v, le) => dv.setFloat64(off, v, le), value, 8, littleEndian ?? this._endianness === Endianness.Little);
-    }
+    public writeFloat64(value: number, le?: boolean): this { return this.writePrimitive((dv, off, v, le) => dv.setFloat64(off, v, le), value, 8, le ?? this._endianness === Endianness.Little); }
 
     /**
      * Writes a string with given encoding.
@@ -398,39 +450,9 @@ export class FlashBuffer {
      */
     public writeBytes(bytes: Uint8Array | Array<number>): this {
         const length = bytes.length;
-        this._ensureWritable(length);
+        this.ensureWritableSpace(length);
         new Uint8Array(this._buffer as ArrayBuffer, this._offset, length).set(bytes);
         this._offset += length;
-        return this;
-    }
-
-    private _ensureWritable(bytes: number): void {
-        const required = this._offset + bytes;
-        if (required > this.size) {
-            this._grow(required);
-        }
-    }
-
-    private _grow(minSize: number): void {
-        let newSize = this.size;
-        while (newSize < minSize) {
-            newSize = Math.max(newSize * this._growthFactor, minSize);
-        }
-        // Round up to nearest power of two optionally, but growthFactor is fine.
-        const newBuffer = this._buffer instanceof SharedArrayBuffer
-            ? new SharedArrayBuffer(newSize)
-            : new ArrayBuffer(newSize);
-
-        // Copy old data
-        new Uint8Array(newBuffer).set(new Uint8Array(this._buffer as ArrayBuffer));
-        this._buffer = newBuffer;
-        this._dataView = new DataView(newBuffer as ArrayBuffer);
-    }
-
-    private _write<T>(writeFn: (dv: DataView, offset: number, value: T, littleEndian?: boolean) => void, value: T, byteLength: number, littleEndian?: boolean): this {
-        this._ensureWritable(byteLength);
-        writeFn(this._dataView, this._offset, value, littleEndian);
-        this._offset += byteLength;
         return this;
     }
     // #endregion

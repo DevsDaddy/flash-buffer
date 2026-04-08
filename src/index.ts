@@ -9,8 +9,6 @@
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
  */
-/* Export types */
-export * from "./types";
-
-/* Export FlashBuffer */
-export * from "./buffer";
+/* Export core classes */
+export * from "./core/types";
+export * from "./core/buffer";
