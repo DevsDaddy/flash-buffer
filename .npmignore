@@ -1,0 +1,6 @@
+tests/
+benchmarks/
+vitest.config.ts
+.gitignore
+.idea
+coverage
