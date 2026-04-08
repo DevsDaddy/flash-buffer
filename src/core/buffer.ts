@@ -12,6 +12,7 @@ import {TextDecoder, TextEncoder} from 'util';
 import {Endianness, Freezable, GrowthStrategy, ReadonlyFlashBuffer} from './types';
 import {applyGrowthStrategy} from "../utils/growthStrategies";
 import {FlashBitBuffer} from "./bitbuffer";
+import {FlashBufferPool} from "./pool";
 
 /* Pre-created text encoder and decoder */
 const textEncoder = new TextEncoder();
@@ -29,6 +30,10 @@ export interface FlashBufferOptions {
     growthStrategy?: GrowthStrategy;
     /** Whether to use SharedArrayBuffer when creating a new buffer. */
     useShared?: boolean;
+    /* Buffer pooling */
+    pool?: FlashBufferPool;
+    /** Autor release buffer after dispose */
+    autoRelease?: boolean;
 }
 
 /**
@@ -42,6 +47,10 @@ export class FlashBuffer implements Freezable{
     protected _endianness: Endianness;
     protected _growthStrategy: Exclude<FlashBufferOptions['growthStrategy'], undefined>;
     protected _frozen: boolean = false;
+
+    /* Buffer Pools */
+    protected _pool?: FlashBufferPool;
+    private readonly _autoRelease: boolean;
 
     /**
      * Create FlashBuffer with Options
@@ -82,6 +91,13 @@ export class FlashBuffer implements Freezable{
         this._dataView = new DataView(buffer as ArrayBuffer);
         this._endianness = opts.endianness ?? Endianness.Big;
         this._growthStrategy = opts.growthStrategy ?? 'powerOfTwo';
+        this._pool = opts.pool;
+        this._autoRelease = opts.autoRelease ?? true;
+
+        if (!buffer && this._pool) {
+            const size = opts.initialSize ?? 1024;
+            this._buffer = this._pool.acquire(size);
+        }
     }
 
     // #region Freezable
@@ -633,6 +649,18 @@ export class FlashBuffer implements Freezable{
         const array = new ctor(this._buffer as ArrayBuffer, this._offset, length);
         this._offset += byteLength;
         return array;
+    }
+    // #endregion
+
+    // #region Buffers
+    /**
+     * Dispose from buffer pool
+     */
+    public dispose(): void {
+        if (this._pool && this._autoRelease && this._buffer) {
+            this._pool.release(this._buffer as ArrayBuffer);
+            this._buffer = undefined as any;
+        }
     }
     // #endregion
 }
