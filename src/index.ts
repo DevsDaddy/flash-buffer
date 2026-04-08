@@ -15,6 +15,8 @@ export * from "./core/buffer";
 export * from "./core/bitbuffer";
 export * from "./core/resizablebuffer";
 export * from "./core/pool";
+export * from "./core/writeablestream";
+export * from "./core/readablestream";
 
 /* Export Schema Tools */
 export * from "./schema/decorators";
