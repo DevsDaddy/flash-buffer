@@ -1,11 +1,40 @@
+/**
+ * Flash Buffer Benchmarks
+ *
+ * @developer           Elijah Rastorguev
+ * @version             1.0.0
+ * @build               1000
+ * @git                 https://github.com/devsdaddy/flash-buffer/
+ * @docs                https://github.com/devsdaddy/flash-buffer/#readme
+ */
+/* Import required modules */
 import { Bench } from 'tinybench';
 import { FlashBuffer } from '../src';
 
+// Create benchmark
 const bench = new Bench({ time: 1000 });
 
+// Set 1m iterations
 const iterations = 1_000_000;
-const values = Array.from({ length: iterations }, () => Math.floor(Math.random() * 0xFFFFFFFF));
 
+// Values for Benchmark
+const values = Array.from({ length: iterations }, () => Math.floor(Math.random() * 0xFFFFFFFF));
+const strings = [
+    'short',
+    'medium length string with some content',
+    'a somewhat longer string that contains some Unicode characters like 你好, привет, 😊, and is long enough to test performance.',
+];
+
+/* Prepare buffer with many strings */
+const writeBuf = new FlashBuffer({ initialSize: iterations * 30 });
+for (let i = 0; i < iterations; i++) {
+    writeBuf.writeCString(strings[i % strings.length]);
+}
+const readBuf = writeBuf.slice();
+
+/**
+ * Create benchmarks
+ */
 bench
     .add('BinaryBuffer write+read uint32', () => {
         const buf = new FlashBuffer({ initialSize: iterations * 4 });
@@ -59,11 +88,25 @@ bench
                 buf.readVarUint();
             }
         };
+    })
+    .add('write C-string', () => {
+        const buf = new FlashBuffer({ initialSize: 1024 });
+        for (let i = 0; i < iterations; i++) {
+            buf.writeCString(strings[i % strings.length]);
+        }
+    })
+    .add('read C-string', () => {
+        readBuf.reset();
+        for (let i = 0; i < iterations; i++) {
+            readBuf.readCString();
+        }
     });
 
+/**
+ * Run Benchmarks
+ */
 async function runBench() {
     await bench.run();
     console.table(bench.table());
 }
-
 runBench().catch(console.error);

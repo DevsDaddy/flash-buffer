@@ -20,6 +20,96 @@ describe('FlashBuffer Tests', () => {
         buf = new FlashBuffer({ initialSize: 64, endianness: Endianness.Little });
     });
 
+    it('should write and read simple bit patterns', () => {
+        const bits = buf.bit();
+
+        bits.writeBits(0b101, 3);
+        bits.writeBits(0b11, 2);
+        bits.flush();
+
+        buf.reset();
+        const readBits = buf.bit();
+        expect(readBits.readBits(3)).toBe(0b101);
+        expect(readBits.readBits(2)).toBe(0b11);
+    });
+
+    it('should preserve all bits across boundaries (detailed)', () => {
+        const buf = new FlashBuffer({ initialSize: 4 });
+        const bits = buf.bit();
+
+        // Пишем 5 бит единиц (11111) = 31
+        bits.writeBits(0b11111, 5);
+        // Пишем 5 бит (10101) = 21
+        bits.writeBits(0b10101, 5);
+        bits.flush();
+
+        buf.reset();
+        const readBits = buf.bit();
+        expect(readBits.readBits(5)).toBe(0b11111);
+        expect(readBits.readBits(5)).toBe(0b10101);
+    });
+
+    it('should handle up to 32 bits', () => {
+        const bits = buf.bit();
+        const value = 0x12345678;
+        bits.writeBits(value, 32);
+        bits.flush();
+
+        buf.reset();
+        const readBits = buf.bit();
+        expect(readBits.readBits(32)).toBe(value);
+    });
+
+    it('should work mixed with byte-aligned operations', () => {
+        buf.writeUint8(0xAA);
+        const bits = buf.bit();
+        bits.writeBits(0b110, 3);
+        bits.flush();
+        buf.writeUint8(0x55);
+
+        buf.reset();
+        expect(buf.readUint8()).toBe(0xAA);
+
+        const readBits = buf.bit();
+        expect(readBits.readBits(3)).toBe(0b110);
+        readBits.flush();
+
+        expect(buf.readUint8()).toBe(0x55);
+    });
+
+    it('should flush correctly', () => {
+        const bits = buf.bit();
+        bits.writeBits(1, 1);
+        bits.flush(); // should advance offset to next byte
+
+        const before = buf.offset;
+        bits.writeBits(2, 2);
+        bits.flush();
+        expect(buf.offset).toBe(before + 1);
+    });
+
+    it('should throw on invalid bit counts', () => {
+        const bits = buf.bit();
+        expect(() => bits.writeBits(1, 0)).toThrow();
+        expect(() => bits.writeBits(1, 33)).toThrow();
+        expect(() => bits.readBits(0)).toThrow();
+        expect(() => bits.readBits(33)).toThrow();
+    });
+
+    it('should handle large bit sequences', () => {
+        const bits = buf.bit();
+        for (let i = 0; i < 100; i++) {
+            bits.writeBits(i & 0x7F, 7);
+        }
+        bits.flush();
+
+        buf.reset();
+        const readBits = buf.bit();
+        for (let i = 0; i < 100; i++) {
+            expect(readBits.readBits(7)).toBe(i & 0x7F);
+        }
+    });
+
     it('Should write and read uint8', () => {
         buf.writeUint8(42).writeUint8(255);
         buf.seek(0);
