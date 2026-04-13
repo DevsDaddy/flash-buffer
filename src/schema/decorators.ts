@@ -2,23 +2,34 @@
  * Flash Buffer Decorators
  *
  * @developer           Elijah Rastorguev
- * @version             1.0.0
- * @build               1000
+ * @version             1.1.0
+ * @build               1005
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
+ * @updated             13.04.2026
  */
 import 'reflect-metadata';
+import {ProtobufType} from "../protobuf";
 
 /* Add Schema Metadata Key */
 const SCHEMA_METADATA_KEY = Symbol('binary:schema');
+
+/* Flash buffer field types */
+export type FlashBufferType = 'uint8' | 'int8' | 'uint16' | 'int16' | 'uint32' | 'int32' | 'uint64' |
+    'int64' | 'float32' | 'float64' | 'string' | 'cstring' | 'varuint' | 'varint' |
+    'varuint64' | 'sint32' | 'sint64' | 'fixed32' | 'fixed64' | 'sfixed32' | 'sfixed64';
 
 /**
  * Field Options
  */
 export interface FieldOptions {
-    type: 'uint8' | 'uint16' | 'uint32' | 'int32' | 'float32' | 'float64' | 'string' | 'cstring';
+    type?: FlashBufferType;
     littleEndian?: boolean;
     length?: number; // for strings: max length, or fixed length
+
+    // For protobuf
+    protoType?: ProtobufType;
+    fieldNumber?: number;
 }
 
 /**

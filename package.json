@@ -1,6 +1,6 @@
 {
   "name": "flash-buffer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "An extremely fast and optimized pure typescript binary buffer for your cross-platform real-time applications. A modern approach to memory optimization and network packages.",
   "keywords": [
     "fast",
@@ -38,7 +38,8 @@
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts src/schema/index.ts --format cjs,esm --dts --clean",
+    "update-docs": "ts-node docutil.ts",
+    "build": "npm run update-docs && tsup src/index.ts src/schema/index.ts --format cjs,esm --dts --clean",
     "test": "vitest run",
     "test:watch": "vitest",
     "bench": "tsx benchmarks/bench.ts",
@@ -49,6 +50,8 @@
   "devDependencies": {
     "@types/node": "^20.11.0",
     "reflect-metadata": "^0.2.1",
+    "ts-morph": "^27.0.2",
+    "ts-node": "^10.9.0",
     "tsup": "^8.0.1",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",

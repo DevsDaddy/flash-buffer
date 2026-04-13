@@ -4,10 +4,11 @@
  * A modern approach to memory optimization and network packages.
  *
  * @developer           Elijah Rastorguev
- * @version             1.0.0
- * @build               1000
+ * @version             1.1.0
+ * @build               1004
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
+ * @updated             13.04.2026
  */
 /* Export core classes */
 export * from "./core/types";
@@ -21,6 +22,12 @@ export * from "./core/readablestream";
 /* Export Schema Tools */
 export * from "./schema/decorators";
 export * from "./schema/schema";
+
+/* Diff / Patch Support */
+export * from "./diff";
+
+/* Protobuf Support */
+export * from "./protobuf";
 
 /* Export Utils */
 export * from "./utils/growthStrategies";

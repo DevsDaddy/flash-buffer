@@ -32,6 +32,7 @@
 - **Bit-Level Operations (BitBuffer):** Read and write arbitrary numbers of bits (1-32) for flags, compressed data, and cryptography.
 - **C-Strings (Null-Terminated Strings):** Convenient handling of strings found in system APIs and network protocols.
 - **Streaming I/O:** Adapters for seamless integration with Web Streams API (``FlashReadableStream`` / ``FlashWritableStream``).
+- **Protobuf support:** Added protobuf reader / writer based on **Flash Buffer**;
 
 #### **Schema-Based Serialization (experimental):**
 - **Declarative Schemas:** Define binary structures using TypeScript decorators (@field).
@@ -114,12 +115,69 @@ console.log(readBits.readBits(5)); // 0b11111 (31)
 console.log(readBits.readBits(5)); // 0b10101 (21)
 ```
 
+**Objects and Serialization:**
+
+```typescript
+import {FlashBufferSchema, field} from 'flash-buffer';
+
+/* Example of serializable class */
+class Player {
+    @field({type: 'uint32'}) id: number = 0;
+    @field({type: 'string'}) name: string = '';
+    @field({type: 'float64'}) x: number = 0;
+    @field({type: 'float64'}) y: number = 0;
+    @field({type: 'varint'}) vint: number = 0;
+}
+
+/* Create and fill our class */
+let player = new Player();
+player.id = 1;
+player.name = 'Elijah';
+player.x = 55.2
+player.y = 21.11;
+player.vint = 5991;
+
+/* Serialize and Deserialize */
+const serialized = FlashBufferSchema.serialize(player);
+console.log("Serialized:", serialized);
+
+const deserialized = FlashBufferSchema.deserialize(Player, serialized.reset());
+console.log("Deserialized:", deserialized)
+```
+
+**Binary patch:**
+```typescript
+import { FlashBuffer } from 'flash-buffer';
+
+// Binary patch
+const oldBuf = new FlashBuffer();
+oldBuf.writeString('The quick brown fox jumps over the lazy dog.');
+
+const newBuf = new FlashBuffer();
+newBuf.writeString('The quick brown cat jumps over the lazy dog.');
+
+const patch = oldBuf.diff(newBuf);
+const reconstructed = oldBuf.applyPatch(patch);
+console.log(reconstructed.toUint8Array() === newBuf.toUint8Array()); // Must be equal with newBuf
+```
+
 ### NPM Commands
 | Command | Usage                         |
 |-------|-------------------------------|
 | npm run build | Build dist package            |
 | npm run test | Run tests (43 tests included) |
 | npm run bench | Run benchmarks                |
+
+---
+
+## Supported Types
+**FlashBuffer** provides a large list of supported types for buffer:
+
+| Category  | Supported Types                                                                                                                                      |
+|-----------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Basic     | ``Int8``,``Uint8``, ``Int16``, ``Uint16``, ``Int32``, ``Uint32``, ``BigInt64``, ``BigUInt64``, ``Float32``, ``Float64``, ``string``, (raw) ``bytes`` |
+| Advanced  | ``VarUint``, ``VarUint64``, ``VarInt``, ``VarSint32``, ``VarSint64``, ``Fixed32``, ``Fixed64``, ``SFixed32``, ``SFixed64``                             |
+
 
 ---
 

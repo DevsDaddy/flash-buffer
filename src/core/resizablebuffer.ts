@@ -2,10 +2,11 @@
  * Flash Buffer Resizable implementation
  *
  * @developer           Elijah Rastorguev
- * @version             1.0.0
- * @build               1000
+ * @version             1.1.0
+ * @build               1004
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
+ * @updated             13.04.2026
  */
 /* Import Required Modules */
 import {FlashBuffer, FlashBufferOptions} from "./buffer";
