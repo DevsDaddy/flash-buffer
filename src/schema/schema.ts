@@ -6,6 +6,7 @@
  * @build               1000
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
+ * @updated             12.04.2026
  */
 /* Import required modules */
 import {FlashBuffer} from "../core/buffer";
@@ -33,6 +34,8 @@ export class FlashBufferSchema {
                 case 'int32': buf.writeInt32(value, options.littleEndian); break;
                 case 'float32': buf.writeFloat32(value, options.littleEndian); break;
                 case 'float64': buf.writeFloat64(value, options.littleEndian); break;
+                case 'varuint': buf.writeVarUint(value); break;
+                case 'varint': buf.writeVarInt(value); break;
                 case 'string': buf.writeString(value, 'utf-8', true); break;
                 case 'cstring': buf.writeCString(value); break;
                 default: throw new Error(`Unsupported type: ${options.type}`);
@@ -58,6 +61,8 @@ export class FlashBufferSchema {
                 case 'int32': value = buffer.readInt32(options.littleEndian); break;
                 case 'float32': value = buffer.readFloat32(options.littleEndian); break;
                 case 'float64': value = buffer.readFloat64(options.littleEndian); break;
+                case 'varuint': value = buffer.readVarUint(); break;
+                case 'varint' : value = buffer.readVarInt(); break;
                 case 'string': {
                     const len = buffer.readUint32();
                     value = buffer.readString(len);

@@ -6,6 +6,7 @@
  * @build               1000
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
+ * @updated             12.04.2026
  */
 import 'reflect-metadata';
 
@@ -16,7 +17,7 @@ const SCHEMA_METADATA_KEY = Symbol('binary:schema');
  * Field Options
  */
 export interface FieldOptions {
-    type: 'uint8' | 'uint16' | 'uint32' | 'int32' | 'float32' | 'float64' | 'string' | 'cstring';
+    type: 'uint8' | 'uint16' | 'uint32' | 'int32' | 'float32' | 'float64' | 'string' | 'cstring' | 'varuint' | 'varint';
     littleEndian?: boolean;
     length?: number; // for strings: max length, or fixed length
 }

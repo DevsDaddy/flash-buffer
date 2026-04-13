@@ -114,6 +114,36 @@ console.log(readBits.readBits(5)); // 0b11111 (31)
 console.log(readBits.readBits(5)); // 0b10101 (21)
 ```
 
+**Objects and Serialization:**
+
+```typescript
+import {FlashBufferSchema, field} from 'flash-buffer';
+
+/* Example of serializable class */
+class Player {
+    @field({type: 'uint32'}) id: number = 0;
+    @field({type: 'string'}) name: string = '';
+    @field({type: 'float64'}) x: number = 0;
+    @field({type: 'float64'}) y: number = 0;
+    @field({type: 'varint'}) vint: number = 0;
+}
+
+/* Create and fill our class */
+let player = new Player();
+player.id = 1;
+player.name = 'Elijah';
+player.x = 55.2
+player.y = 21.11;
+player.vint = 5991;
+
+/* Serialize and Deserialize */
+const serialized = FlashBufferSchema.serialize(player);
+console.log("Serialized:", serialized);
+
+const deserialized = FlashBufferSchema.deserialize(Player, serialized.reset());
+console.log("Deserialized:", deserialized)
+```
+
 ### NPM Commands
 | Command | Usage                         |
 |-------|-------------------------------|
