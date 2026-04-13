@@ -2,10 +2,11 @@
  * Flash Buffer implementation
  *
  * @developer           Elijah Rastorguev
- * @version             1.0.0
- * @build               1000
+ * @version             1.1.0
+ * @build               1004
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
+ * @updated             13.04.2026
  */
 /* Import required modules */
 import {TextDecoder, TextEncoder} from 'util';
@@ -13,6 +14,7 @@ import {Endianness, Freezable, GrowthStrategy, ReadonlyFlashBuffer} from './type
 import {applyGrowthStrategy} from "../utils/growthStrategies";
 import {FlashBitBuffer} from "./bitbuffer";
 import {FlashBufferPool} from "./pool";
+import {applyPatch, createPatch} from "../diff";
 
 /* Pre-created text encoder and decoder */
 const textEncoder = new TextEncoder();
@@ -494,6 +496,22 @@ export class FlashBuffer implements Freezable{
     }
 
     /**
+     * Read VarUint64 Value
+     * @returns {bigint} VarUint64 Value
+     */
+    public readVarUint64(): bigint {
+        let result = 0n;
+        let shift = 0n;
+        while (true) {
+            const byte = this._dataView.getUint8(this._offset++);
+            result |= BigInt(byte & 0x7f) << shift;
+            if ((byte & 0x80) === 0) break;
+            shift += 7n;
+        }
+        return result;
+    }
+
+    /**
      * Read VarInt
      * @returns {number} VarInt value
      */
@@ -501,6 +519,24 @@ export class FlashBuffer implements Freezable{
         const raw = this.readVarUint();
         // zigzag decode
         return (raw >>> 1) ^ -(raw & 1);
+    }
+
+    /**
+     * Read Sint32
+     * @returns {number} Sint32 Value
+     */
+    public readSint32(): number {
+        const zigzag = this.readVarUint();
+        return (zigzag >>> 1) ^ -(zigzag & 1);
+    }
+
+    /**
+     * Read Sint64 Value
+     */
+    public readSint64(): bigint {
+        const zigzag = this.readVarUint64();
+        // zigzag decode: (zigzag >>> 1) ^ -(zigzag & 1)
+        return (zigzag >> 1n) ^ -(zigzag & 1n);
     }
 
     /**
@@ -522,6 +558,24 @@ export class FlashBuffer implements Freezable{
     }
 
     /**
+     * Write VarUint64
+     * @param value {bigint} Uint64
+     */
+    public writeVarUint64(value: bigint): this {
+        this.ensureWritable();
+        let v = value;
+        do {
+            let byte = Number(v & 0x7fn);
+            v >>= 7n;
+            if (v !== 0n) byte |= 0x80;
+            this.ensureWritableSpace(1);
+            this._dataView.setUint8(this._offset, byte);
+            this._offset++;
+        } while (v !== 0n);
+        return this;
+    }
+
+    /**
      * Write VarInt
      * @param value {number} VarInt value
      * @returns {FlashBuffer} Current buffer instance
@@ -531,8 +585,93 @@ export class FlashBuffer implements Freezable{
         const zigzag = (value << 1) ^ (value >> 31);
         return this.writeVarUint(zigzag);
     }
+
+    /**
+     * Write Sint32
+     * @param value {number} Write Sint32 Value
+     */
+    public writeSint32(value: number): this {
+        const zigzag = (value << 1) ^ (value >> 31);
+        return this.writeVarUint(zigzag);
+    }
+
+    /**
+     * Write Sint64 Value
+     * @param value {bigint} Sint64 Value
+     */
+    public writeSint64(value: bigint): this {
+        // zigzag encode for bigint: (value << 1) ^ (value >> 63)
+        const zigzag = (value << 1n) ^ (value >> 63n);
+        return this.writeVarUint64(zigzag);
+    }
     // #endregion
 
+    // #region Fixed64
+    /**
+     * Read Fixed32
+     * @returns {number} Fixed32 Value
+     */
+    public readFixed32(): number {
+        return this.readUint32(true);
+    }
+
+    /**
+     * Read Fixed64
+     * @returns {number} Fixed64 Value
+     */
+    public readFixed64(): bigint {
+        return this.readBigUint64(true);
+    }
+
+    /**
+     * Write Fixed32
+     * @param value {number} Fixed32 Value
+     */
+    public writeFixed32(value: number): this {
+        return this.writeUint32(value, true);
+    }
+
+    /**
+     * Write Fixed64
+     * @param value {number} Fixed64 Value
+     */
+    public writeFixed64(value: bigint): this {
+        return this.writeBigUint64(value, true);
+    }
+    // #endregion
+
+    // #region SFixed32
+    /**
+     * Read SFixed32 value
+     * @returns {number} SFixed32 value
+     */
+    public readSFixed32(): number {
+        return this.readInt32(true);
+    }
+
+    /**
+     * Read SFixed64 value
+     * @returns {bigint} SFixed64 Value
+     */
+    public readSFixed64(): bigint {
+        return this.readBigInt64(true);
+    }
+
+    /**
+     * Write SFixed64
+     * @param value {bigint} SFixed64 value
+     */
+    public writeSFixed64(value: bigint): this {
+        return this.writeBigInt64(value, true);
+    }
+
+    /**
+     * Write SFixed32
+     * @param value {number} SFixed32 Value
+     */
+    public writeSFixed32(value: number): this {
+        return this.writeInt32(value, true);
+    }
     // #region CString
     /**
      * Read CString
@@ -661,6 +800,81 @@ export class FlashBuffer implements Freezable{
             this._pool.release(this._buffer as ArrayBuffer);
             this._buffer = undefined as any;
         }
+    }
+    // #endregion
+
+    // #region Utils
+    /**
+     * To Uint8 Array
+     * @returns {Uint8Array} Array output
+     */
+    public toUint8Array(): Uint8Array {
+        if (typeof (this as any)._byteOffset === 'number') {
+            return new Uint8Array(
+                (this as any)._buffer,
+                (this as any)._byteOffset,
+                (this as any)._byteLength ?? this._offset
+            );
+        }
+
+        return new Uint8Array(this._buffer, 0, this._offset);
+    }
+
+    /**
+     * Copy from
+     * @param data {Uint8Array} Input data
+     * @param offset {number} Offset
+     * @returns {FlashBuffer}
+     */
+    public copyFrom(data: Uint8Array, offset: number = 0): this {
+        this.seek(offset);
+        this.writeBytes(data);
+        return this;
+    }
+
+    /**
+     * Creates new patch and transform current buffer to newBuffer
+     * @param newBuffer {FlashBuffer} Buffer to transform
+     * @returns {FlashBuffer}
+     */
+    public diff(newBuffer: FlashBuffer): FlashBuffer {
+        const oldData = this.toUint8Array();
+        const newData = newBuffer.toUint8Array();
+        const patch = createPatch(oldData, newData);
+        const patchBuf = new FlashBuffer();
+        patchBuf.writeBytes(patch);
+        return patchBuf;
+    }
+
+    /**
+     * Apply patch to current buffer and returns new buffer
+     * @param patchBuffer {FlashBuffer}
+     * @returns {FlashBuffer}
+     */
+    public applyPatch(patchBuffer: FlashBuffer): FlashBuffer {
+        const oldData = this.toUint8Array();
+        const patchData = patchBuffer.toUint8Array();
+        const newData = applyPatch(oldData, patchData);
+        const result = new FlashBuffer();
+        result.writeBytes(newData);
+        result.truncate();
+        return result;
+    }
+
+    /**
+     * Truncate buffer
+     * @returns {FlashBuffer}
+     */
+    public truncate(): this {
+        if (typeof (this as any)._byteLength === 'number') {
+            (this as any)._byteLength = this._offset;
+        } else {
+            const exactBuffer = new ArrayBuffer(this._offset);
+            new Uint8Array(exactBuffer).set(new Uint8Array(this._buffer, 0, this._offset));
+            this._buffer = exactBuffer;
+            this._dataView = new DataView(exactBuffer);
+        }
+        return this;
     }
     // #endregion
 }

@@ -2,11 +2,11 @@
  * Flash Buffer Schema Tests
  *
  * @developer           Elijah Rastorguev
- * @version             1.0.0
- * @build               1000
+ * @version             1.1.0
+ * @build               1004
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
- * @updated             12.04.2026
+ * @updated             13.04.2026
  */
 import {beforeAll, describe, expect, it} from 'vitest';
 import {FlashBufferSchema, field} from "../src";

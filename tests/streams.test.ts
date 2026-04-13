@@ -2,10 +2,11 @@
  * Flash Buffer Streams Tests
  *
  * @developer           Elijah Rastorguev
- * @version             1.0.0
- * @build               1000
+ * @version             1.1.0
+ * @build               1003
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
+ * @updated             13.04.2026
  */
 import { describe, it, expect } from 'vitest';
 import { FlashWritableStream, FlashReadableStream } from '../src/';
