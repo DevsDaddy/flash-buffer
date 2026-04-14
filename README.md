@@ -55,7 +55,7 @@ git cd ./flash-buffer/
 
 ### 💻 Usage Examples
 #### Basic Reading and Writing
-
+**Using raw values:**
 ```typescript
 import { FlashBuffer } from 'flash-buffer';
 
@@ -76,6 +76,35 @@ const str = buf.readString(strLength);
 
 console.log(value.toString(16)); // 'deadbeef'
 console.log(str);               // 'Hello, Flash!'
+```
+
+**Using Branded Primitives:**
+```typescript
+import { FlashBuffer, Uint16LE, Uint32BE, Uint8, Float32LE } from 'flash-buffer';
+
+const newBuf = new FlashBuffer();
+
+// Create primitives
+const magic = Uint16LE.create(0x4D42);
+const fileSize = Uint32BE.create(102400);
+const version = Uint8.create(1);
+const compression = Float32LE.create(0.75);
+const data = "Hello world";
+
+// Write buffer
+newBuf.write(Uint16LE, magic);
+newBuf.write(Uint32BE, fileSize);
+newBuf.write(Uint8, version);
+newBuf.write(Float32LE, compression);
+newBuf.writeString(data, "utf-16");
+
+// Reset offset and read
+newBuf.reset();
+const readMagic = newBuf.read(Uint16LE);
+const readSize = newBuf.read(Uint32BE);
+const readVer = newBuf.read(Uint8);
+const readComp = newBuf.read(Float32LE);
+const readData = newBuf.readString(data.length, "utf-16");
 ```
 
 #### Working with VarInt (Variable-Length Integers)

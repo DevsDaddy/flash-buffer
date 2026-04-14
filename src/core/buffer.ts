@@ -3,10 +3,10 @@
  *
  * @developer           Elijah Rastorguev
  * @version             1.1.0
- * @build               1004
+ * @build               1005
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
- * @updated             13.04.2026
+ * @updated             14.04.2026
  */
 /* Import required modules */
 import {TextDecoder, TextEncoder} from 'util';
@@ -15,6 +15,7 @@ import {applyGrowthStrategy} from "../utils/growthStrategies";
 import {FlashBitBuffer} from "./bitbuffer";
 import {FlashBufferPool} from "./pool";
 import {applyPatch, createPatch} from "../diff";
+import {Brand, TypeFactory} from "./primitives";
 
 /* Pre-created text encoder and decoder */
 const textEncoder = new TextEncoder();
@@ -347,6 +348,14 @@ export class FlashBuffer implements Freezable{
         this._offset += length;
         return view;
     }
+
+    /**
+     * Read Typed value
+     * @param factory Typed value
+     */
+    public read<T>(factory: { read(buf: FlashBuffer): T }): T {
+        return factory.read(this);
+    }
     // #endregion
 
     // #region Writing
@@ -472,6 +481,16 @@ export class FlashBuffer implements Freezable{
         this.ensureWritableSpace(length);
         new Uint8Array(this._buffer as ArrayBuffer, this._offset, length).set(bytes);
         this._offset += length;
+        return this;
+    }
+
+    /**
+     * Write typed value
+     * @param factory {TypeFactory} Typed Value
+     * @return value Value
+     */
+    public write<T>(factory: { write(buf: FlashBuffer, value: T): void }, value: T): this {
+        factory.write(this, value);
         return this;
     }
     // #endregion
