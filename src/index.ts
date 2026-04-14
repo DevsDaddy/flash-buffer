@@ -5,10 +5,10 @@
  *
  * @developer           Elijah Rastorguev
  * @version             1.1.0
- * @build               1004
+ * @build               1005
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
- * @updated             13.04.2026
+ * @updated             14.04.2026
  */
 /* Export core classes */
 export * from "./core/types";
@@ -18,6 +18,7 @@ export * from "./core/resizablebuffer";
 export * from "./core/pool";
 export * from "./core/writeablestream";
 export * from "./core/readablestream";
+export * from "./core/primitives";
 
 /* Export Schema Tools */
 export * from "./schema/decorators";
