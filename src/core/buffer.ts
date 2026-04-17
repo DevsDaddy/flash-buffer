@@ -3,13 +3,12 @@
  *
  * @developer           Elijah Rastorguev
  * @version             1.1.0
- * @build               1005
+ * @build               1006
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
- * @updated             14.04.2026
+ * @updated             17.04.2026
  */
 /* Import required modules */
-import {TextDecoder, TextEncoder} from 'util';
 import {Endianness, Freezable, GrowthStrategy, ReadonlyFlashBuffer} from './types';
 import {applyGrowthStrategy} from "../utils/growthStrategies";
 import {FlashBitBuffer} from "./bitbuffer";
