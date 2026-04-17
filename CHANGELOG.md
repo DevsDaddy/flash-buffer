@@ -1,4 +1,10 @@
 ## Changelog
+## v.1.1.3
+More stability with new fallback support in browsers for automatic mode.
+
+**What's new?**
+- Added fallback for ``SharedArrayBuffer``. This fallback uses if ``SharedArrayBuffer`` blocked in browser or not supported.
+
 ## v.1.1.2
 **Hotfix:** Replaced TextEncoder to native from node.
 

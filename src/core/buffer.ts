@@ -2,8 +2,8 @@
  * Flash Buffer implementation
  *
  * @developer           Elijah Rastorguev
- * @version             1.1.0
- * @build               1006
+ * @version             1.1.3
+ * @build               1010
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
  * @updated             17.04.2026
@@ -14,7 +14,7 @@ import {applyGrowthStrategy} from "../utils/growthStrategies";
 import {FlashBitBuffer} from "./bitbuffer";
 import {FlashBufferPool} from "./pool";
 import {applyPatch, createPatch} from "../diff";
-import {Brand, TypeFactory} from "./primitives";
+import { SHARED_ARRAY_BUFFER_AVAILABLE } from "../constants";
 
 /* Pre-created text encoder and decoder */
 const textEncoder = new TextEncoder();
@@ -79,14 +79,17 @@ export class FlashBuffer implements Freezable{
         let buffer: ArrayBuffer | SharedArrayBuffer;
         let opts: FlashBufferOptions = {};
 
-        if (bufferOrOptions instanceof ArrayBuffer || bufferOrOptions instanceof SharedArrayBuffer) {
+        const isArrayBuffer = bufferOrOptions instanceof ArrayBuffer;
+        const isSharedArrayBuffer = SHARED_ARRAY_BUFFER_AVAILABLE && bufferOrOptions instanceof SharedArrayBuffer;
+
+        if (isArrayBuffer || isSharedArrayBuffer) {
             buffer = bufferOrOptions;
             opts = options ?? {};
         } else {
-            opts = bufferOrOptions ?? {};
+            opts = bufferOrOptions as FlashBufferOptions ?? {};
             const size = opts.initialSize ?? 1024;
             const useShared = opts.useShared ?? (typeof SharedArrayBuffer !== 'undefined');
-            buffer = useShared ? new SharedArrayBuffer(size) : new ArrayBuffer(size);
+            buffer = useShared ? SHARED_ARRAY_BUFFER_AVAILABLE ? new SharedArrayBuffer(size) : new ArrayBuffer(size) : new ArrayBuffer(size);
         }
 
         this._buffer = buffer;
@@ -215,7 +218,7 @@ export class FlashBuffer implements Freezable{
      */
     protected grow(minSize: number): void {
         const newSize = applyGrowthStrategy(this.size, minSize, this._growthStrategy);
-        const newBuffer = this._buffer instanceof SharedArrayBuffer
+        const newBuffer = SHARED_ARRAY_BUFFER_AVAILABLE && this._buffer instanceof SharedArrayBuffer
             ? new SharedArrayBuffer(newSize)
             : new ArrayBuffer(newSize);
 
@@ -887,7 +890,7 @@ export class FlashBuffer implements Freezable{
         if (typeof (this as any)._byteLength === 'number') {
             (this as any)._byteLength = this._offset;
         } else {
-            const exactBuffer = new ArrayBuffer(this._offset);
+            const exactBuffer = (SHARED_ARRAY_BUFFER_AVAILABLE && this._buffer instanceof SharedArrayBuffer) ? new SharedArrayBuffer(this._offset) : new ArrayBuffer(this._offset);
             new Uint8Array(exactBuffer).set(new Uint8Array(this._buffer, 0, this._offset));
             this._buffer = exactBuffer;
             this._dataView = new DataView(exactBuffer);
