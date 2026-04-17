@@ -1,4 +1,7 @@
 ## Changelog
+## v.1.1.2
+**Hotfix:** Replaced TextEncoder to native from node.
+
 ## v.1.1.1 
 Working with the library has become even more convenient thanks to more precise typing. Even more stability for your applications.
 
