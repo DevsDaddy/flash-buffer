@@ -2,14 +2,14 @@
  * Flash Buffer Protobuf WireFormat Tests
  *
  * @developer           Elijah Rastorguev
- * @version             1.1.0
- * @build               1003
+ * @version             1.1.6
+ * @build               1004
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
- * @updated             13.04.2026
+ * @updated             20.04.2026
  */
 import { describe, it, expect } from 'vitest';
-import {FlashBuffer, ProtobufWireType} from "../src";
+import {ConvertUtils, FlashBuffer, ProtobufWireType} from "../src";
 
 describe('Protobuf Wire Format', () => {
     function makeTag(fieldNumber: number, wireType: ProtobufWireType): number {
@@ -50,7 +50,7 @@ describe('Protobuf Wire Format', () => {
         const buf = new FlashBuffer();
         const fieldNum = 3;
         const str = 'Hello, protobuf!';
-        const encoded = new TextEncoder().encode(str);
+        const encoded = ConvertUtils.textToBytes(str);
 
         buf.writeVarUint(makeTag(fieldNum, ProtobufWireType.LengthDelimited));
         buf.writeVarUint(encoded.byteLength);

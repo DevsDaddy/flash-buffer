@@ -1,4 +1,13 @@
 ## Changelog
+### v.1.1.6
+This version is improvement for string conversion. Use it if you have a troubles with ``TextEncoder`` and shared buffers.
+
+**What's new?**
+- Added new ``ConvertUtils`` class;
+- Replaced ``TextEncoder`` and ``TextDecoders`` anywhere;
+
+---
+
 ### v.1.1.5
 Meet the new version of **Flash Buffer** — even more convenient for serializing your data than ever before. New serialization types, dynamic object handling, improved schemas, and extensibility.
 

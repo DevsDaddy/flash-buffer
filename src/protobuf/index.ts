@@ -2,15 +2,16 @@
  * Flash Buffer Protobuf support
  *
  * @developer           Elijah Rastorguev
- * @version             1.1.0
- * @build               1003
+ * @version             1.1.6
+ * @build               1004
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
- * @updated             13.04.2026
+ * @updated             20.04.2026
  */
 /* Import required modules */
 import { FlashBuffer } from "../core/buffer";
 import {ProtobufWireType, protobufEncodeTag, protobufDecodeTag, ProtobufTag} from './types';
+import {ConvertUtils} from "../utils/convert";
 
 /* Export Protobuf Types */
 export * from "./types";
@@ -171,7 +172,7 @@ export class ProtobufWriter {
      * @param value
      */
     public writeString(fieldNumber: number, value: string): void {
-        const encoded = new TextEncoder().encode(value);
+        const encoded = ConvertUtils.textToBytes(value);
         this.writeBytes(fieldNumber, encoded);
     }
 

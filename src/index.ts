@@ -4,8 +4,8 @@
  * A modern approach to memory optimization and network packages.
  *
  * @developer           Elijah Rastorguev
- * @version             1.1.0
- * @build               1008
+ * @version             1.1.6
+ * @build               1009
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
  * @updated             20.04.2026
@@ -33,3 +33,4 @@ export * from "./protobuf";
 
 /* Export Utils */
 export * from "./utils/growthStrategies";
+export * from "./utils/convert";

@@ -2,14 +2,14 @@
  * Flash Buffer Streams Tests
  *
  * @developer           Elijah Rastorguev
- * @version             1.1.0
- * @build               1003
+ * @version             1.1.6
+ * @build               1004
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
- * @updated             13.04.2026
+ * @updated             20.04.2026
  */
 import { describe, it, expect } from 'vitest';
-import { FlashWritableStream, FlashReadableStream } from '../src/';
+import {FlashWritableStream, FlashReadableStream, ConvertUtils} from '../src/';
 
 import { ReadableStream, WritableStream } from 'stream/web';
 import {FlashBuffer} from "../src"; // Node.js 18+
@@ -61,7 +61,7 @@ describe('FlashReadableStream Tests', () => {
 
     it('should read string', async () => {
         const str = 'hello stream';
-        const encoded = new TextEncoder().encode(str);
+        const encoded = ConvertUtils.textToBytes(str);
         const reader = await createStream(encoded);
         expect(await reader.readString(encoded.byteLength)).toBe(str);
         await reader.close();
