@@ -3,7 +3,7 @@
  *
  * @developer           Elijah Rastorguev
  * @version             1.1.5
- * @build               1010
+ * @build               1012
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
  * @updated             20.04.2026
@@ -50,6 +50,7 @@ export class FlashBufferSchema {
                 case 'string': buf.writeString(value, 'utf-8', true); break;
                 case 'cstring': buf.writeCString(value); break;
                 case 'bool': buf.writeBool(value); break;
+                case 'dynamic': buf.writeDynamic(value); break;
                 default: throw new Error(`Unsupported type: ${options.type}`);
             }
         }
@@ -87,13 +88,10 @@ export class FlashBufferSchema {
                 case 'fixed64': value = buffer.readFixed64(); break;
                 case 'sfixed32': value = buffer.readSFixed32(); break;
                 case 'sfixed64': value = buffer.readSFixed64(); break;
-                case 'string': {
-                    const len = buffer.readUint32();
-                    value = buffer.readString(len);
-                    break;
-                }
+                case 'string': value = buffer.readString(); break;
                 case 'cstring': value = buffer.readCString(); break;
                 case 'bool': value = buffer.readBool(); break;
+                case 'dynamic': value = buffer.readDynamic(); break;
                 default: throw new Error(`Unsupported type: ${options.type}`);
             }
 

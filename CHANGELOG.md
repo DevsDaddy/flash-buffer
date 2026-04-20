@@ -5,7 +5,7 @@ Meet the new version of **Flash Buffer** — even more convenient for serializin
 **What's new?**
 - Added new ``boolean`` type for flash buffer and schema;
 - Added dynamic serializer for objects of any type (methods: ``readDynamic`` and ``writeDynamic``);
-- 
+- Added dynamic support for ``FlashBufferSchema``;
 
 **Dynamic Serializer Example:**
 ```typescript

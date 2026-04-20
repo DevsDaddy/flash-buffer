@@ -3,7 +3,7 @@
  *
  * @developer           Elijah Rastorguev
  * @version             1.1.5
- * @build               1010
+ * @build               1012
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
  * @updated             20.04.2026
@@ -18,7 +18,7 @@ const SCHEMA_METADATA_KEY = Symbol('binary:schema');
 export type FlashBufferType = 'uint8' | 'int8' | 'uint16' | 'int16' | 'uint32' | 'int32' | 'uint64' |
     'int64' | 'float32' | 'float64' | 'string' | 'cstring' | 'varuint' | 'varint' |
     'varuint64' | 'sint32' | 'sint64' | 'fixed32' | 'fixed64' | 'sfixed32' | 'sfixed64' |
-    'bool';
+    'bool' | 'dynamic';
 
 /**
  * Field Options
