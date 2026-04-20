@@ -3,7 +3,7 @@
  *
  * @developer           Elijah Rastorguev
  * @version             1.1.5
- * @build               1007
+ * @build               1010
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
  * @updated             20.04.2026
@@ -53,6 +53,7 @@ export class FlashBufferSchema {
                 default: throw new Error(`Unsupported type: ${options.type}`);
             }
         }
+
         return buf;
     }
 
@@ -95,6 +96,7 @@ export class FlashBufferSchema {
                 case 'bool': value = buffer.readBool(); break;
                 default: throw new Error(`Unsupported type: ${options.type}`);
             }
+
             (obj as any)[propertyKey] = value;
         }
         return obj;

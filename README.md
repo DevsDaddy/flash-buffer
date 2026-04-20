@@ -28,6 +28,7 @@
 - **Works Everywhere:** Runs seamlessly in modern browsers, Node.js, Deno, and Bun.
 
 #### **Advanced Data Formats:**
+- **Automatic data serialization and deserialization:** store different objects inside a buffer;
 - **VarInt (LEB128) with ZigZag Encoding:** Efficient storage for variable-length integers, commonly used in Protocol Buffers.
 - **Bit-Level Operations (BitBuffer):** Read and write arbitrary numbers of bits (1-32) for flags, compressed data, and cryptography.
 - **C-Strings (Null-Terminated Strings):** Convenient handling of strings found in system APIs and network protocols.

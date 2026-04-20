@@ -3,13 +3,13 @@
  *
  * @developer           Elijah Rastorguev
  * @version             1.1.0
- * @build               1005
+ * @build               1008
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
  * @updated             20.04.2026
  */
 import {beforeEach, describe, expect, it} from 'vitest';
-import {FlashBuffer, Endianness} from "../src";
+import {FlashBuffer, Endianness, registerClass} from "../src";
 
 interface TypedTestOptions {
     first: number;
@@ -198,5 +198,100 @@ describe('FlashBuffer Tests', () => {
         let second = buf.readBool();
         expect(first).toEqual(true);
         expect(second).toEqual(false);
+    });
+
+    it('Dynamic value read and write', ()=> {
+        // Create custom class
+        class Person {
+            constructor(public name: string, public age: number) {}
+        }
+
+        // Register custom class
+        registerClass(Person, {
+            write(buf, p: Person) {
+                buf.writeString(p.name, "utf-8", true);
+                buf.writeUint8(p.age);
+            },
+            read(buf) {
+                const name = buf.readString();
+                const age = buf.readUint8();
+                return new Person(name, age);
+            }
+        });
+
+        // Create a dynamic object
+        interface IOriginal {
+            id: number;
+            name: string;
+            isActive: boolean;
+            createdAt: Date;
+            tags: string[];
+            profile: Person;
+            metadata: Map<string, string>;
+            data: Uint8Array;
+        }
+
+        const original : IOriginal = {
+            id: 123,
+            name: 'Alice',
+            isActive: true,
+            createdAt: new Date(),
+            tags: ['admin', 'user'],
+            profile: new Person('Alice', 30),
+            metadata: new Map([['key', 'value']]),
+            data: new Uint8Array([1, 2, 3]),
+        };
+
+        // Serialize and deserialize dynamically
+        buf.writeDynamic(original);
+        buf.reset();
+        const restored = buf.readDynamic<IOriginal>();
+        expect(restored).toEqual(original);
+    });
+
+    it('Dynamic objects arrays read and write', ()=> {
+        interface MyObject {
+            id: number;
+            name: string;
+            isActive: boolean;
+            createdAt: Date;
+            tags: string[];
+            metadata: Map<string, string> | undefined;
+            data: Uint8Array | undefined;
+        }
+
+        interface MyList {
+            id: number;
+            list: Set<MyObject>;
+        }
+
+        const original : MyList = {
+            id: 1,
+            list: new Set<MyObject>()
+        };
+        original.list.add({
+            id: 123,
+            name: 'Alice',
+            isActive: true,
+            createdAt: new Date(),
+            tags: ['admin', 'user'],
+            metadata: new Map([['key', 'value']]),
+            data: new Uint8Array([1, 2, 3]),
+        })
+        original.list.add({
+            id: 456,
+            name: 'Bob',
+            isActive: true,
+            createdAt: new Date(),
+            tags: ['admin'],
+            metadata: undefined,
+            data: undefined,
+        })
+
+        // Serialize and deserialize dynamically
+        buf.writeDynamic(original);
+        buf.reset();
+        const restored = buf.readDynamic<MyList>();
+        expect(restored).toEqual(original);
     });
 });

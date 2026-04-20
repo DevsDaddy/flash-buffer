@@ -5,10 +5,10 @@
  *
  * @developer           Elijah Rastorguev
  * @version             1.1.0
- * @build               1005
+ * @build               1008
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
- * @updated             14.04.2026
+ * @updated             20.04.2026
  */
 /* Export core classes */
 export * from "./core/types";
@@ -23,6 +23,7 @@ export * from "./core/primitives";
 /* Export Schema Tools */
 export * from "./schema/decorators";
 export * from "./schema/schema";
+export * from "./schema/value-serializer";
 
 /* Diff / Patch Support */
 export * from "./diff";
