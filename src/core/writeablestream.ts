@@ -2,12 +2,14 @@
  * Flash Buffer Writeable Stream Support
  *
  * @developer           Elijah Rastorguev
- * @version             1.1.0
- * @build               1004
+ * @version             1.1.6
+ * @build               1005
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme4
- * @updated             13.04.2026
+ * @updated             20.04.2026
  */
+import {ConvertUtils} from "../utils/convert";
+
 /**
  * Flash Buffer Writeable Stream Options
  */
@@ -138,7 +140,7 @@ export class FlashWritableStream {
      * @param str {string}
      */
     public writeString(str: string): this {
-        const encoded = new TextEncoder().encode(str);
+        const encoded = ConvertUtils.textToBytes(str);
         return this.writeBytes(encoded);
     }
 

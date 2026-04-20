@@ -2,12 +2,14 @@
  * Flash Buffer Readable Stream Support
  *
  * @developer           Elijah Rastorguev
- * @version             1.1.0
- * @build               1004
+ * @version             1.1.6
+ * @build               1005
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
- * @updated             13.04.2026
+ * @updated             20.04.2026
  */
+import {ConvertUtils} from "../utils/convert";
+
 /**
  * Flash Buffer Readable Stream Options
  */
@@ -146,7 +148,7 @@ export class FlashReadableStream {
      */
     public async readString(byteLength: number, encoding: string = 'utf-8'): Promise<string> {
         const bytes = await this.readBytes(byteLength);
-        return new TextDecoder(encoding).decode(bytes);
+        return ConvertUtils.bytesToText(bytes);
     }
 
     /**

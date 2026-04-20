@@ -2,14 +2,14 @@
  * Flash Buffer C-String Tests
  *
  * @developer           Elijah Rastorguev
- * @version             1.1.0
- * @build               1004
+ * @version             1.1.6
+ * @build               1005
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
- * @updated             13.04.2026
+ * @updated             20.04.2026
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FlashBuffer } from '../src';
+import {ConvertUtils, FlashBuffer} from '../src';
 
 describe('FlashBuffer C-String operations tests', () => {
     let buf: FlashBuffer;
@@ -58,7 +58,7 @@ describe('FlashBuffer C-String operations tests', () => {
     it('should throw on unterminated string', () => {
         const str = 'no terminator';
         // Write without null terminator
-        buf.writeBytes(new TextEncoder().encode(str));
+        buf.writeBytes(ConvertUtils.textToBytes(str));
         buf.reset();
 
         expect(() => buf.readCString()).toThrow('Unterminated C string');

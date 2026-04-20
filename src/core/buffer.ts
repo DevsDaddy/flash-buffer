@@ -2,8 +2,8 @@
  * Flash Buffer implementation
  *
  * @developer           Elijah Rastorguev
- * @version             1.1.5
- * @build               1017
+ * @version             1.1.6
+ * @build               1018
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
  * @updated             20.04.2026
@@ -16,10 +16,7 @@ import {FlashBufferPool} from "./pool";
 import {applyPatch, createPatch} from "../diff";
 import { SHARED_ARRAY_BUFFER_AVAILABLE } from "../constants";
 import {readValueDynamic, writeValueDynamic} from "../schema/value-serializer";
-
-/* Pre-created text encoder and decoder */
-const textEncoder = new TextEncoder();
-const textDecoder = new TextDecoder();
+import {ConvertUtils} from "../utils/convert";
 
 /**
  * Flash Buffer Options
@@ -332,7 +329,6 @@ export class FlashBuffer implements Freezable{
 
     /**
      * Reads a string of given byte length.
-     * Uses TextDecoder; no extra copy is made (decoder works on the buffer view).
      * @param byteLength {number} buffer length
      * @param encoding {string} Text encoding
      * @returns {string} Raw string
@@ -344,7 +340,7 @@ export class FlashBuffer implements Freezable{
         // Read string
         this.ensureReadable(byteLength);
         const view = new Uint8Array(this._buffer as ArrayBuffer, this._offset, byteLength);
-        const str = textDecoder.decode(view);
+        const str = ConvertUtils.bytesToText(view);
         this._offset += byteLength;
         return str;
     }
@@ -489,7 +485,7 @@ export class FlashBuffer implements Freezable{
      * @returns {FlashBuffer} current buffer instance
      */
     public writeString(str: string, encoding: string = 'utf-8', prefixLength: boolean = false): this {
-        const encoded = textEncoder.encode(str);
+        const encoded = ConvertUtils.textToBytes(str);
         if (prefixLength) {
             this.writeUint32(encoded.byteLength);
         }
@@ -741,7 +737,7 @@ export class FlashBuffer implements Freezable{
         const length = this._offset - start;
         const view = new Uint8Array(this._buffer as ArrayBuffer, start, length);
         this._offset++; // skip null terminator
-        return textDecoder.decode(view);
+        return ConvertUtils.bytesToText(view);
     }
 
     /**
@@ -750,7 +746,7 @@ export class FlashBuffer implements Freezable{
      * @returns {FlashBuffer} Current buffer instance
      */
     public writeCString(str: string): this {
-        const encoded = textEncoder.encode(str);
+        const encoded = ConvertUtils.textToBytes(str);
         this.writeBytes(encoded);
         this.writeUint8(0);
         return this;
