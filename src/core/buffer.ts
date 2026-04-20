@@ -2,8 +2,8 @@
  * Flash Buffer implementation
  *
  * @developer           Elijah Rastorguev
- * @version             1.1.3
- * @build               1012
+ * @version             1.1.5
+ * @build               1017
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
  * @updated             20.04.2026
@@ -15,6 +15,7 @@ import {FlashBitBuffer} from "./bitbuffer";
 import {FlashBufferPool} from "./pool";
 import {applyPatch, createPatch} from "../diff";
 import { SHARED_ARRAY_BUFFER_AVAILABLE } from "../constants";
+import {readValueDynamic, writeValueDynamic} from "../schema/value-serializer";
 
 /* Pre-created text encoder and decoder */
 const textEncoder = new TextEncoder();
@@ -256,6 +257,12 @@ export class FlashBuffer implements Freezable{
     }
 
     /**
+     * Read boolean value
+     * @returns {boolean} Bool value
+     */
+    public readBool() : boolean { return (this.readPrimitive((dv, off) => dv.getUint8(off), 1) !== 0); }
+
+    /**
      * Read Int8
      * @returns {number} Int8 value
      */
@@ -330,7 +337,11 @@ export class FlashBuffer implements Freezable{
      * @param encoding {string} Text encoding
      * @returns {string} Raw string
      */
-    public readString(byteLength: number, encoding: string = 'utf-8'): string {
+    public readString(byteLength ? : number, encoding: string = 'utf-8'): string {
+        // Check byte length is defined
+        if(!byteLength) byteLength = this.readUint32();
+
+        // Read string
         this.ensureReadable(byteLength);
         const view = new Uint8Array(this._buffer as ArrayBuffer, this._offset, byteLength);
         const str = textDecoder.decode(view);
@@ -358,6 +369,13 @@ export class FlashBuffer implements Freezable{
     public read<T>(factory: { read(buf: FlashBuffer): T }): T {
         return factory.read(this);
     }
+
+    /**
+     * Read value of type
+     */
+    public readDynamic<T = any>(): T {
+        return readValueDynamic(this) as T;
+    }
     // #endregion
 
     // #region Writing
@@ -376,6 +394,13 @@ export class FlashBuffer implements Freezable{
         this._offset += byteLength;
         return this;
     }
+
+    /**
+     * Write boolean value
+     * @param value {boolean} Bool value
+     * @returns {FlashBuffer} current buffer instance
+     */
+    public writeBool(value : boolean) : this { return this.writePrimitive((dv, off, v) => dv.setInt8(off, v), (value) ? 1 : 0, 1); }
 
     /**
      * Write Int8 value
@@ -493,6 +518,15 @@ export class FlashBuffer implements Freezable{
      */
     public write<T>(factory: { write(buf: FlashBuffer, value: T): void }, value: T): this {
         factory.write(this, value);
+        return this;
+    }
+
+    /**
+     * Write value of ant type
+     * @param value {any}
+     */
+    public writeDynamic(value: any): this {
+        writeValueDynamic(this, value);
         return this;
     }
     // #endregion

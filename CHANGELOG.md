@@ -1,4 +1,66 @@
 ## Changelog
+### v.1.1.5
+Meet the new version of **Flash Buffer** — even more convenient for serializing your data than ever before. New serialization types, dynamic object handling, improved schemas, and extensibility.
+
+**What's new?**
+- Added new ``boolean`` type for flash buffer and schema;
+- Added dynamic serializer for objects of any type (methods: ``readDynamic`` and ``writeDynamic``);
+- Added dynamic support for ``FlashBufferSchema``;
+
+**Dynamic Serializer Example:**
+```typescript
+// Create custom class
+class Person {
+    constructor(public name: string, public age: number) {}
+}
+
+// Register custom class
+registerClass(Person, {
+    write(buf, p: Person) {
+        buf.writeString(p.name, "utf-8", true);
+        buf.writeUint8(p.age);
+    },
+    read(buf) {
+        const name = buf.readString();
+        const age = buf.readUint8();
+        return new Person(name, age);
+    }
+});
+
+// Create a dynamic object
+interface IOriginal {
+    id: number;
+    name: string;
+    isActive: boolean;
+    createdAt: Date;
+    tags: string[];
+    profile: Person;
+    metadata: Map<string, string>;
+    data: Uint8Array;
+}
+
+// Deserialized object
+const original : IOriginal = {
+    id: 123,
+    name: 'Alice',
+    isActive: true,
+    createdAt: new Date(),
+    tags: ['admin', 'user'],
+    profile: new Person('Alice', 30),
+    metadata: new Map([['key', 'value']]),
+    data: new Uint8Array([1, 2, 3]),
+};
+
+// Serialize and deserialize dynamically
+buf.writeDynamic(original);
+buf.reset();
+const restored = buf.readDynamic<IOriginal>();
+console.log(restored);
+// restored equals to original
+```
+
+---
+
 ### v.1.1.4
 New util methods for ``FlashBuffer`` presented in this version.
 

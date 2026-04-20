@@ -2,16 +2,15 @@
  * Flash Buffer schema support
  *
  * @developer           Elijah Rastorguev
- * @version             1.1.0
- * @build               1005
+ * @version             1.1.5
+ * @build               1012
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
- * @updated             13.04.2026
+ * @updated             20.04.2026
  */
 /* Import required modules */
 import {FlashBuffer} from "../core/buffer";
 import {FieldOptions, getSchemaFields} from "./decorators";
-import {ProtobufReader, ProtobufWriter} from "../protobuf";
 
 /**
  * Flash buffer schema
@@ -50,9 +49,12 @@ export class FlashBufferSchema {
                 case 'sfixed64': buf.writeSFixed64(value); break;
                 case 'string': buf.writeString(value, 'utf-8', true); break;
                 case 'cstring': buf.writeCString(value); break;
+                case 'bool': buf.writeBool(value); break;
+                case 'dynamic': buf.writeDynamic(value); break;
                 default: throw new Error(`Unsupported type: ${options.type}`);
             }
         }
+
         return buf;
     }
 
@@ -86,14 +88,13 @@ export class FlashBufferSchema {
                 case 'fixed64': value = buffer.readFixed64(); break;
                 case 'sfixed32': value = buffer.readSFixed32(); break;
                 case 'sfixed64': value = buffer.readSFixed64(); break;
-                case 'string': {
-                    const len = buffer.readUint32();
-                    value = buffer.readString(len);
-                    break;
-                }
+                case 'string': value = buffer.readString(); break;
                 case 'cstring': value = buffer.readCString(); break;
+                case 'bool': value = buffer.readBool(); break;
+                case 'dynamic': value = buffer.readDynamic(); break;
                 default: throw new Error(`Unsupported type: ${options.type}`);
             }
+
             (obj as any)[propertyKey] = value;
         }
         return obj;

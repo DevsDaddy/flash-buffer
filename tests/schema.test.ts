@@ -3,7 +3,7 @@
  *
  * @developer           Elijah Rastorguev
  * @version             1.1.0
- * @build               1006
+ * @build               1010
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
  * @updated             20.04.2026
@@ -15,6 +15,17 @@ import {FlashBufferSchema, field, FlashBuffer} from "../src";
  * Object serialization / Deserialization
  */
 describe('Flash Buffer Schema tests', () => {
+    /* For dynamic fields */
+    interface MyObjectType {
+        id: number;
+        name: string;
+        isActive: boolean;
+        createdAt: Date;
+        tags: string[];
+        metadata: Map<string, string> | undefined;
+        data: Uint8Array | undefined;
+    }
+
     /* Describe schema */
     class Player {
         @field({ type: 'uint32' }) id: number = 0;
@@ -22,6 +33,8 @@ describe('Flash Buffer Schema tests', () => {
         @field({ type: 'float64' }) x: number = 0;
         @field({ type: 'float64' }) y: number = 0;
         @field({ type: 'varint' }) vint : number = 0;
+        @field({ type: 'bool' }) isEnabled : boolean = false;
+        @field({ type: 'dynamic' }) dynamic : MyObjectType | undefined;
     }
 
     // Create and fill data
@@ -33,6 +46,16 @@ describe('Flash Buffer Schema tests', () => {
         player.x = 55.2
         player.y = 21.11;
         player.vint = 5991;
+        player.isEnabled  = true;
+        player.dynamic = {
+            id: 123,
+            name: 'Alice',
+            isActive: true,
+            createdAt: new Date(),
+            tags: ['admin', 'user'],
+            metadata: new Map([['key', 'value']]),
+            data: new Uint8Array([1, 2, 3]),
+        }
     });
 
     it('Serialize and Deserialize schema', ()=> {
