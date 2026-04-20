@@ -1,4 +1,13 @@
 ## Changelog
+### v.1.1.5
+Meet the new version of **Flash Buffer** — even more convenient for serializing your data than ever before. New serialization types, dynamic object handling, improved schemas, and extensibility.
+
+**What's new?**
+- Added new ``boolean`` type for flash buffer and schema;
+- 
+
+---
+
 ### v.1.1.4
 New util methods for ``FlashBuffer`` presented in this version.
 

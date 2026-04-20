@@ -3,7 +3,7 @@
  *
  * @developer           Elijah Rastorguev
  * @version             1.1.0
- * @build               1006
+ * @build               1008
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
  * @updated             20.04.2026
@@ -22,6 +22,7 @@ describe('Flash Buffer Schema tests', () => {
         @field({ type: 'float64' }) x: number = 0;
         @field({ type: 'float64' }) y: number = 0;
         @field({ type: 'varint' }) vint : number = 0;
+        @field({ type: 'bool' }) isEnabled : boolean = false;
     }
 
     // Create and fill data
@@ -33,6 +34,7 @@ describe('Flash Buffer Schema tests', () => {
         player.x = 55.2
         player.y = 21.11;
         player.vint = 5991;
+        player.isEnabled  = true;
     });
 
     it('Serialize and Deserialize schema', ()=> {

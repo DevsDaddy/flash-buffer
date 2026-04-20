@@ -3,13 +3,25 @@
  *
  * @developer           Elijah Rastorguev
  * @version             1.1.0
- * @build               1003
+ * @build               1005
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
- * @updated             13.04.2026
+ * @updated             20.04.2026
  */
 import {beforeEach, describe, expect, it} from 'vitest';
 import {FlashBuffer, Endianness} from "../src";
+
+interface TypedTestOptions {
+    first: number;
+    second: string;
+    third: boolean;
+}
+
+interface TypedTest {
+    id: number;
+    name: string;
+    options: TypedTestOptions;
+}
 
 /**
  * Describe FlashBuffer tests
@@ -175,5 +187,16 @@ describe('FlashBuffer Tests', () => {
             const shared = new FlashBuffer({ useShared: true, initialSize: 16 });
             expect(shared.buffer).toBeInstanceOf(SharedArrayBuffer);
         }
+    });
+
+    it('Should write and read boolean', ()=>{
+        buf.writeBool(true);
+        buf.writeBool(false);
+        buf.reset();
+
+        let first = buf.readBool();
+        let second = buf.readBool();
+        expect(first).toEqual(true);
+        expect(second).toEqual(false);
     });
 });
