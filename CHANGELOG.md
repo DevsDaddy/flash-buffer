@@ -1,19 +1,34 @@
 ## Changelog
-## v.1.1.3
+### v.1.1.4
+New util methods for ``FlashBuffer`` presented in this version.
+
+**What's new?**
+- Changed method ``toUint8Array`` (added ``copy`` argument);
+- Added new static method ``fromUint8Array`` for conversion;
+
+---
+
+### v.1.1.3
 More stability with new fallback support in browsers for automatic mode.
 
 **What's new?**
 - Added fallback for ``SharedArrayBuffer``. This fallback uses if ``SharedArrayBuffer`` blocked in browser or not supported.
 
-## v.1.1.2
+---
+
+### v.1.1.2
 **Hotfix:** Replaced TextEncoder to native from node.
 
-## v.1.1.1 
+---
+
+### v.1.1.1 
 Working with the library has become even more convenient thanks to more precise typing. Even more stability for your applications.
 
 **What's new:**
 - **Added branded types:** ``Uint8``, ``Int8``, ``Uint16LE``, ``Uint16BE``, ``Int16LE``, ``Int16BE``, ``Uint32LE``, ``Uint32BE``, ``Int32LE``, ``Int32BE``, ``Float32LE``, ``Float32BE``, ``Float64LE``, ``Float64BE``, ``BigUint64LE``, ``BigUint64BE``, ``BigInt64LE``, ``BigInt64BE``, ``VarUint32``, ``VarInt32``, ``VarUint64``
 - **Added methods:** ``write`` and ``read`` to ``FlashBuffer`` for branded types;
+
+---
 
 ### v.1.1.0 (13.04.2026)
 **New Features:**
