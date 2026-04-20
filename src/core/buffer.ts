@@ -3,10 +3,10 @@
  *
  * @developer           Elijah Rastorguev
  * @version             1.1.3
- * @build               1010
+ * @build               1012
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
- * @updated             17.04.2026
+ * @updated             20.04.2026
  */
 /* Import required modules */
 import {Endianness, Freezable, GrowthStrategy, ReadonlyFlashBuffer} from './types';
@@ -827,18 +827,45 @@ export class FlashBuffer implements Freezable{
     // #region Utils
     /**
      * To Uint8 Array
+     * @param copy {boolean} Copy values
      * @returns {Uint8Array} Array output
      */
-    public toUint8Array(): Uint8Array {
+    public toUint8Array(copy: boolean = false): Uint8Array {
         if (typeof (this as any)._byteOffset === 'number') {
-            return new Uint8Array(
+            const view = new Uint8Array(
                 (this as any)._buffer,
                 (this as any)._byteOffset,
                 (this as any)._byteLength ?? this._offset
             );
+
+            return copy ? view.slice() : view;
         }
 
-        return new Uint8Array(this._buffer, 0, this._offset);
+        const view = new Uint8Array(this._buffer, 0, this._offset);
+        return copy ? view.slice() : view;
+    }
+
+    /**
+     * From Uint8 Array
+     * @param array {Uint8Array} Raw buffer
+     * @param copy {boolean} copy values
+     * @param options {FlashBufferOptions} FlashBuffer Options
+     */
+    public static fromUint8Array(
+        array: Uint8Array,
+        copy: boolean = false,
+        options?: Omit<FlashBufferOptions, 'initialSize' | 'useShared'>
+    ): FlashBuffer {
+        if (copy) {
+            const buffer = new ArrayBuffer(array.byteLength);
+            new Uint8Array(buffer).set(array);
+            return new FlashBuffer(buffer, options);
+        }
+
+        return new FlashBuffer(
+            array.buffer,
+            options
+        );
     }
 
     /**

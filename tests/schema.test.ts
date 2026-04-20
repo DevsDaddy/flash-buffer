@@ -3,13 +3,13 @@
  *
  * @developer           Elijah Rastorguev
  * @version             1.1.0
- * @build               1004
+ * @build               1006
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
- * @updated             13.04.2026
+ * @updated             20.04.2026
  */
 import {beforeAll, describe, expect, it} from 'vitest';
-import {FlashBufferSchema, field} from "../src";
+import {FlashBufferSchema, field, FlashBuffer} from "../src";
 
 /**
  * Object serialization / Deserialization
@@ -38,6 +38,12 @@ describe('Flash Buffer Schema tests', () => {
     it('Serialize and Deserialize schema', ()=> {
         let serialized = FlashBufferSchema.serialize(player);
         let deserialized = FlashBufferSchema.deserialize(Player, serialized.reset());
+        expect(deserialized).toEqual(player);
+    });
+
+    it('Serialize and Deserialize using Uint8 Array', ()=> {
+        let serialized = FlashBufferSchema.serialize(player).toUint8Array();
+        let deserialized = FlashBufferSchema.deserialize(Player, FlashBuffer.fromUint8Array(serialized));
         expect(deserialized).toEqual(player);
     });
 })

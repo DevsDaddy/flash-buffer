@@ -3,7 +3,7 @@
  *
  * @developer           Elijah Rastorguev
  * @version             1.0.0
- * @build               1000
+ * @build               1001
  * @git                 https://github.com/devsdaddy/flash-buffer/
  * @docs                https://github.com/devsdaddy/flash-buffer/#readme
  */
@@ -15,6 +15,7 @@ import { defineConfig } from 'vitest/config';
  */
 export default defineConfig({
     test: {
+        reporters: ['verbose'],
         globals: true,
         environment: 'node',
         include: ['tests/**/*.test.ts'],
